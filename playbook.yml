@@ -1,0 +1,73 @@
+---
+- name: Manage webserver on VM1 and VM2
+  hosts: webservers
+  become: yes
+  vars:
+    deploy_webserver: false
+    undeploy_webserver: false
+
+  tasks:
+    - name: Install Apache
+      package:
+        name: httpd
+        state: present
+      when: deploy_webserver
+
+    - name: Start and enable Apache
+      systemd:
+        name: httpd
+        state: started
+        enabled: yes
+      when: deploy_webserver
+
+    - name: Create index.html
+      copy:
+        content: |
+          Hello World from SJSU-{{ inventory_hostname[-1] }}
+        dest: /var/www/html/index.html
+      when: deploy_webserver
+
+    - name: Open port 8080 for Apache
+      lineinfile:
+        path: /etc/httpd/conf/httpd.conf
+        regexp: '^Listen 80'
+        line: 'Listen 8080'
+        state: present
+      when: deploy_webserver
+
+      - name: Restart Apache
+      systemd:
+        name: httpd
+        state: restarted
+      when: deploy_webserver
+
+    - name: Stop Apache
+      systemd:
+        name: httpd
+        state: stopped
+        enabled: no
+      when: undeploy_webserver
+
+    - name: Remove Apache
+      package:
+        name: httpd
+        state: absent
+      when: undeploy_webserver
+
+    - name: Remove index.html
+      file:
+        path: /var/www/html/index.html
+        state: absent
+      when: undeploy_webserver
+
+    - name: Revert port 8080 configuration for Apache
+      lineinfile:
+        path: /etc/httpd/conf/httpd.conf
+        regexp: '^Listen 8080'
+        line: 'Listen 80'
+        state: present
+    - name: Restart Apache to apply configuration changes
+      systemd:
+        name: httpd
+        state: restarted
+      when: undeploy_webserver
