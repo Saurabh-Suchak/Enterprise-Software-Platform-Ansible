@@ -1,5 +1,5 @@
 ---
-- name: Manage webserver on VM1 and VM2
+- name: Deploy webserver on VM1 and VM2
   hosts: webservers
   become: yes
   vars:
